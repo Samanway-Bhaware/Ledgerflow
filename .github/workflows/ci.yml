@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install ruff
+      - run: ruff check pipeline/ tests/
+
+  dag-import:
+    name: DAG import check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install "apache-airflow==2.9.3" "apache-airflow-providers-postgres>=5.10,<6"
+      - run: |
+          export AIRFLOW_HOME=${{ github.workspace }}/.airflow
+          export AIRFLOW__CORE__DAGS_FOLDER=${{ github.workspace }}/airflow/dags
+          python -c "
+          from airflow.models import DagBag
+          db = DagBag('airflow/dags', include_examples=False)
+          assert not db.import_errors, db.import_errors
+          print(f'loaded {len(db.dags)} DAG(s)')
+          "
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t tp-app:ci .
+      - run: docker build -t tp-airflow:ci ./airflow
