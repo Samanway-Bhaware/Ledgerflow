@@ -1,4 +1,4 @@
-# Real-Time Transaction Analytics Pipeline
+# Ledgerflow: Real-Time Transaction Analytics Pipeline
 
 ![CI](https://github.com/YOUR_USERNAME/transaction-pipeline/actions/workflows/ci.yml/badge.svg)
 
